@@ -1,0 +1,23 @@
+spring.application.name=moviedb
+server.port=8081
+# OMDb API Configuration
+# Replace with your actual API key
+omdb.api.key=YOUR_OMDB_API_KEY
+
+# Security Configuration
+jwt.secret=YOUR_JWT_SECRET
+
+# Gemini AI Configuration
+gemini.api.key=YOUR_GEMINI_API_KEY
+gemini.model=gemini-2.5-flash
+gemini.fallback-models=gemini-2.5-flash-lite,gemini-2.0-flash
+
+# PostgreSQL Database Configuration
+spring.datasource.url=jdbc:postgresql://localhost:5432/moviedb
+spring.datasource.username=YOUR_POSTGRES_USERNAME
+spring.datasource.password=YOUR_POSTGRES_PASSWORD
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+
+# Show SQL in logs
+spring.jpa.show-sql=true
+spring.jpa.hibernate.ddl-auto=update
