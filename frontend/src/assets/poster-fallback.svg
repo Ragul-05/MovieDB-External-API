@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 600" role="img" aria-labelledby="title desc">
+  <title id="title">Poster unavailable</title>
+  <desc id="desc">Fallback poster graphic used when a movie poster cannot be loaded.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eff6ff" />
+      <stop offset="100%" stop-color="#dbeafe" />
+    </linearGradient>
+  </defs>
+  <rect width="400" height="600" fill="url(#bg)" />
+  <rect x="30" y="30" width="340" height="540" rx="24" fill="#ffffff" stroke="#bfdbfe" stroke-width="4" />
+  <rect x="85" y="115" width="230" height="210" rx="18" fill="#dbeafe" />
+  <circle cx="150" cy="185" r="26" fill="#93c5fd" />
+  <path d="M100 292l52-60 44 42 36-28 68 46v33H100z" fill="#60a5fa" />
+  <text x="200" y="400" text-anchor="middle" font-size="34" font-family="Arial, sans-serif" font-weight="700" fill="#1e3a8a">MovieDB</text>
+  <text x="200" y="445" text-anchor="middle" font-size="20" font-family="Arial, sans-serif" fill="#475569">Poster unavailable</text>
+</svg>
