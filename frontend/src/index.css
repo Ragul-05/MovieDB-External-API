@@ -1,0 +1,41 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-dark font-interface;
+  }
+}
+
+@layer components {
+  .enterprise-card {
+    @apply bg-white rounded-card shadow-sm border border-gray-100 p-6 transition-all duration-300 hover:shadow-md;
+  }
+  
+  .btn-primary {
+    @apply bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all hover:bg-blue-900 focus:ring-2 focus:ring-primary focus:ring-opacity-50;
+  }
+  
+  .sidebar-link {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-lg text-gray-600 transition-all hover:bg-gray-50 hover:text-primary;
+  }
+  
+  .sidebar-link.active {
+    @apply bg-blue-50 text-primary font-semibold border-r-4 border-primary rounded-r-none;
+  }
+
+  .metric-card {
+    @apply enterprise-card flex flex-col justify-between;
+  }
+  
+  .metric-value {
+    @apply text-2xl font-bold text-dark mt-2;
+  }
+  
+  .metric-label {
+    @apply text-sm text-gray-500 font-medium;
+  }
+}
