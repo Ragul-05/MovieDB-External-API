@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Star, Clock, Calendar, User, Heart, Trash2 } from 'lucide-react';
+import { Star, Clock, Calendar, User, Heart, Trash2, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { favoriteService } from '../services/api';
+import { favoriteService, movieService } from '../services/api';
 import usePosterImage from '../hooks/usePosterImage';
 
 const MovieCard = ({
@@ -12,10 +12,14 @@ const MovieCard = ({
     initialIsFavorite = false,
     showRemoveAction = false,
     onRemove,
+    onTrailerOpen,
+    compact = false,
 }) => {
     const { authenticated } = useAuth();
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
     const [loading, setLoading] = useState(false);
+    const [trailerLoading, setTrailerLoading] = useState(false);
+    const [trailerError, setTrailerError] = useState('');
 
     // Handle "N/A" values
     const getValue = (val) => val && val !== "N/A" ? val : "N/A";
@@ -52,6 +56,31 @@ const MovieCard = ({
         }
     };
 
+    const handleTrailerClick = async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (trailerLoading) return;
+
+        setTrailerLoading(true);
+        setTrailerError('');
+
+        try {
+            const response = await movieService.getTrailer(movie.imdbID);
+            const youtubeUrl = response.data?.youtubeUrl;
+
+            if (!youtubeUrl) {
+                throw new Error('Trailer not available');
+            }
+
+            window.open(youtubeUrl, '_blank', 'noopener,noreferrer');
+            if (onTrailerOpen) onTrailerOpen(movie.imdbID);
+        } catch (err) {
+            setTrailerError('Trailer not available');
+        } finally {
+            setTrailerLoading(false);
+        }
+    };
+
     return (
         <motion.div
             layout
@@ -60,13 +89,16 @@ const MovieCard = ({
             exit={{ opacity: 0, scale: 0.9 }}
             whileHover={{ y: -8 }}
             transition={{ duration: 0.3 }}
-            className="group relative flex flex-col bg-white rounded-card overflow-hidden shadow-sm border border-gray-100 hover:shadow-xl transition-all h-full"
+            className={`group relative flex flex-col overflow-hidden rounded-card border border-gray-100 bg-white shadow-sm transition-all hover:shadow-xl h-full ${
+                compact ? 'min-h-[490px]' : ''
+            }`}
         >
             {/* Poster Section */}
-            <Link to={`/movie/${movie.imdbID}`} className="relative h-[400px] overflow-hidden">
+            <Link to={`/movie/${movie.imdbID}`} className={`relative overflow-hidden ${compact ? 'h-[320px]' : 'h-[400px]'}`}>
                 <img
                     src={posterSrc}
                     alt={movie.Title}
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute top-4 left-4 bg-primary/90 text-white px-2 py-1 rounded-md text-xs font-semibold backdrop-blur-md">
@@ -132,12 +164,35 @@ const MovieCard = ({
                         <span className="line-clamp-1">{getValue(movie.Director)}</span>
                     </div>
                 </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                    <Link
+                        to={`/movie/${movie.imdbID}`}
+                        className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold uppercase tracking-wide text-dark transition-all hover:border-primary hover:text-primary"
+                    >
+                        View Details
+                    </Link>
+                    <button
+                        onClick={handleTrailerClick}
+                        disabled={trailerLoading}
+                        className="inline-flex items-center justify-center rounded-xl bg-primary px-3 py-2 text-xs font-bold uppercase tracking-wide text-white transition-all hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <Play size={14} className="mr-1.5" fill="currentColor" />
+                        {trailerLoading ? 'Loading...' : 'Watch Trailer'}
+                    </button>
+                </div>
+
+                {trailerError && (
+                    <p className="mt-3 text-xs font-semibold text-amber-600">
+                        {trailerError}
+                    </p>
+                )}
             </div>
             
             {/* Hover details overlay (Optional) */}
             <Link 
                 to={`/movie/${movie.imdbID}`}
-                className="absolute inset-0 bg-primary/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="pointer-events-none absolute inset-0 bg-primary/10 opacity-0 transition-opacity group-hover:opacity-100"
             />
         </motion.div>
     );
