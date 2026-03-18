@@ -39,6 +39,8 @@ export const normalizeMovie = (movie) => {
         awards: movie.awards ?? movie.Awards ?? 'N/A',
         Production: movie.Production ?? movie.production ?? 'N/A',
         production: movie.production ?? movie.Production ?? 'N/A',
+        youtubeUrl: movie.youtubeUrl ?? movie.youtube_url ?? '',
+        category: movie.category ?? '',
         Type: movie.Type ?? movie.type ?? 'movie',
         type: movie.type ?? movie.Type ?? 'movie',
     };
@@ -63,6 +65,8 @@ export const authService = {
 export const movieService = {
     search: (name) => API.get('/movies', { params: { name } }),
     getDetails: (id) => API.get(`/movies/${id}`),
+    getTrailer: (id) => API.get(`/movies/${id}/trailer`),
+    getCategories: () => API.get('/movies/categories'),
 };
 
 export const favoriteService = {
