@@ -1,10 +1,15 @@
 package com.ragul.moviedb.controller;
 
 import com.ragul.moviedb.dto.OmdbSearchResponse;
+import com.ragul.moviedb.dto.TrailerResponse;
 import com.ragul.moviedb.model.Movie;
 import com.ragul.moviedb.service.MovieService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/movies")
@@ -33,5 +38,23 @@ public class MovieController {
             return ResponseEntity.notFound().build();
         }
         return ResponseEntity.ok(movie);
+    }
+
+    @GetMapping("/{imdbId}/trailer")
+    public ResponseEntity<TrailerResponse> getMovieTrailer(@PathVariable String imdbId) {
+        Optional<String> trailerUrl = movieService.getTrailerUrl(imdbId);
+        return trailerUrl
+                .map(url -> ResponseEntity.ok(new TrailerResponse(url)))
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/category/{category}")
+    public ResponseEntity<List<Movie>> getMoviesByCategory(@PathVariable String category) {
+        return ResponseEntity.ok(movieService.getMoviesByCategory(category));
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<Map<String, List<Movie>>> getMoviesByCategories() {
+        return ResponseEntity.ok(movieService.getMoviesGroupedByCategory());
     }
 }
