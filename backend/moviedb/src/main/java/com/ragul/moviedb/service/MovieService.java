@@ -2,9 +2,9 @@ package com.ragul.moviedb.service;
 
 import com.ragul.moviedb.dto.OmdbMovieDetail;
 import com.ragul.moviedb.dto.OmdbSearchResponse;
+import com.ragul.moviedb.exception.ApiException;
 import com.ragul.moviedb.model.Movie;
 import com.ragul.moviedb.model.SearchHistory;
-import com.ragul.moviedb.model.User;
 import com.ragul.moviedb.repository.MovieRepository;
 import com.ragul.moviedb.repository.SearchHistoryRepository;
 import com.ragul.moviedb.repository.UserRepository;
@@ -12,15 +12,25 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class MovieService {
+    private static final Set<String> SUPPORTED_CATEGORIES = Set.of("comedy", "horror", "action", "adventure");
 
     private final MovieRepository movieRepository;
     private final SearchHistoryRepository historyRepository;
     private final UserRepository userRepository;
+    private final YouTubeService youTubeService;
     private final RestTemplate restTemplate;
 
     @Value("${omdb.api.key}")
@@ -28,10 +38,16 @@ public class MovieService {
 
     private static final String OMDB_URL = "http://www.omdbapi.com/";
 
-    public MovieService(MovieRepository movieRepository, SearchHistoryRepository historyRepository, UserRepository userRepository) {
+    public MovieService(
+            MovieRepository movieRepository,
+            SearchHistoryRepository historyRepository,
+            UserRepository userRepository,
+            YouTubeService youTubeService
+    ) {
         this.movieRepository = movieRepository;
         this.historyRepository = historyRepository;
         this.userRepository = userRepository;
+        this.youTubeService = youTubeService;
         this.restTemplate = new RestTemplate();
     }
 
@@ -77,6 +93,44 @@ public class MovieService {
         }
     }
 
+    public Optional<String> getTrailerUrl(String imdbId) {
+        Movie movie = getMovieDetails(imdbId);
+        if (movie == null) {
+            return Optional.empty();
+        }
+
+        if (movie.getYoutubeUrl() != null && !movie.getYoutubeUrl().isBlank()) {
+            return Optional.of(movie.getYoutubeUrl());
+        }
+
+        Optional<String> youtubeUrl = youTubeService.getOfficialTrailerUrl(movie.getTitle());
+        youtubeUrl.ifPresent(url -> {
+            movie.setYoutubeUrl(url);
+            try {
+                movieRepository.save(movie);
+            } catch (Exception ex) {
+                log.warn("Failed to cache YouTube trailer URL for {}: {}", imdbId, ex.getMessage());
+            }
+        });
+
+        return youtubeUrl;
+    }
+
+    public List<Movie> getMoviesByCategory(String category) {
+        String normalizedCategory = normalizeCategory(category);
+        backfillCategories();
+        return movieRepository.findByCategoryContainingIgnoreCaseOrderByTitleAsc(normalizedCategory);
+    }
+
+    public Map<String, List<Movie>> getMoviesGroupedByCategory() {
+        backfillCategories();
+        Map<String, List<Movie>> groupedMovies = new LinkedHashMap<>();
+        for (String category : List.of("comedy", "horror", "action", "adventure")) {
+            groupedMovies.put(category, movieRepository.findByCategoryContainingIgnoreCaseOrderByTitleAsc(category));
+        }
+        return groupedMovies;
+    }
+
     private boolean hasFullDetails(Movie movie) {
         return movie.getRuntime() != null
                 && movie.getDirector() != null
@@ -105,5 +159,46 @@ public class MovieService {
         movie.setImdbRating(omdbDetail.getImdbRating());
         movie.setImdbVotes(omdbDetail.getImdbVotes());
         movie.setType(omdbDetail.getType());
+        movie.setCategory(deriveCategories(omdbDetail.getGenre()));
+    }
+
+    private void backfillCategories() {
+        List<Movie> uncategorizedMovies = movieRepository.findAll().stream()
+                .filter(movie -> (movie.getCategory() == null || movie.getCategory().isBlank()) && movie.getGenre() != null && !movie.getGenre().isBlank())
+                .peek(movie -> movie.setCategory(deriveCategories(movie.getGenre())))
+                .filter(movie -> movie.getCategory() != null && !movie.getCategory().isBlank())
+                .toList();
+
+        if (!uncategorizedMovies.isEmpty()) {
+            try {
+                movieRepository.saveAll(uncategorizedMovies);
+            } catch (Exception ex) {
+                log.warn("Failed to backfill movie categories: {}", ex.getMessage());
+            }
+        }
+    }
+
+    private String normalizeCategory(String category) {
+        if (category == null || category.isBlank()) {
+            throw new ApiException("Category is required.");
+        }
+
+        String normalizedCategory = category.trim().toLowerCase(Locale.ROOT);
+        if (!SUPPORTED_CATEGORIES.contains(normalizedCategory)) {
+            throw new ApiException("Unsupported category. Use one of: comedy, horror, action, adventure.");
+        }
+        return normalizedCategory;
+    }
+
+    private String deriveCategories(String genre) {
+        if (genre == null || genre.isBlank()) {
+            return null;
+        }
+
+        String normalizedGenre = genre.toLowerCase(Locale.ROOT);
+        return SUPPORTED_CATEGORIES.stream()
+                .filter(normalizedGenre::contains)
+                .sorted()
+                .collect(Collectors.joining(", "));
     }
 }
