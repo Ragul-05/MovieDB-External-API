@@ -8,7 +8,13 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "movies")
+@Table(
+        name = "movies",
+        indexes = {
+                @Index(name = "idx_movies_imdb_id", columnList = "imdb_id"),
+                @Index(name = "idx_movies_category", columnList = "category")
+        }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -40,6 +46,8 @@ public class Movie {
     private String imdbRating;
     private String imdbVotes;
     private String production;
+    private String youtubeUrl;
+    private String category;
 
     @Column(columnDefinition = "TEXT")
     private String plot;
